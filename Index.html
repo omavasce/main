@@ -1,0 +1,1891 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>📦 Package Transport Log</title>
+  <style>
+    :root{
+      --bgA:#0a0f1c;
+      --bgB:#0d1424;
+      --card: rgba(30, 41, 59, 0.85);
+      --border: rgba(255,255,255,0.12);
+      --text:#f1f5f9;
+      --muted:#94a3b8;
+      --blue:#3b82f6;
+      --green:#10b981;
+      --red:#ef4444;
+      --orange:#f97316;
+      --yellow:#eab308;
+      --purple:#8b5cf6;
+      --shadow: 0 12px 40px rgba(0,0,0,0.45);
+      --shadow2: 0 8px 24px rgba(0,0,0,0.3);
+      --radius: 20px;
+      --gradient-primary: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+      --gradient-success: linear-gradient(135deg, #10b981 0%, #0ea5e9 100%);
+      --gradient-danger: linear-gradient(135deg, #ef4444 0%, #f97316 100%);
+      --gradient-high: linear-gradient(135deg, #f97316 0%, #dc2626 100%);
+      --gradient-med: linear-gradient(135deg, #eab308 0%, #f97316 100%);
+    }
+
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      color:var(--text);
+      min-height:100vh;
+      background: 
+        radial-gradient(circle at 10% 20%, rgba(59, 130, 246, 0.15) 0%, transparent 30%),
+        radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 30%),
+        linear-gradient(180deg, var(--bgA) 0%, var(--bgB) 100%);
+      background-attachment: fixed;
+    }
+
+    /* Mode tinting */
+    body.mode-browse .topbar{ 
+      border-color: rgba(59, 130, 246, 0.4);
+      background: rgba(15, 23, 42, 0.92);
+    }
+    body.mode-browse .modeBadge{ 
+      background: var(--gradient-primary);
+      color: white;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+    body.mode-file .topbar{ 
+      border-color: rgba(16, 185, 129, 0.4);
+      background: rgba(15, 23, 42, 0.92);
+    }
+    body.mode-file .modeBadge{ 
+      background: var(--gradient-success);
+      color: white;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+
+    /* High Priority Visual Enhancements */
+    .pkgCard.pri-high {
+      position: relative;
+      border: 2px solid rgba(249, 115, 22, 0.7);
+      background: linear-gradient(145deg, rgba(249, 115, 22, 0.08), rgba(15, 23, 42, 0.9));
+      box-shadow: 
+        0 10px 30px rgba(249, 115, 22, 0.2),
+        0 0 0 1px rgba(249, 115, 22, 0.3),
+        inset 0 1px 0 rgba(255,255,255,0.1);
+      animation: pulse-high 3s infinite;
+    }
+
+    @keyframes pulse-high {
+      0%, 100% { box-shadow: 0 10px 30px rgba(249, 115, 22, 0.2), 0 0 0 1px rgba(249, 115, 22, 0.3); }
+      50% { box-shadow: 0 10px 40px rgba(249, 115, 22, 0.3), 0 0 0 2px rgba(249, 115, 22, 0.5); }
+    }
+
+    .pkgCard.pri-high::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--gradient-high);
+      border-radius: var(--radius) var(--radius) 0 0;
+    }
+
+    .pkgCard.pri-high .pkgHeader {
+      background: linear-gradient(90deg, rgba(249, 115, 22, 0.1), transparent);
+      margin: -12px -12px 12px -12px;
+      padding: 12px;
+      border-radius: var(--radius) var(--radius) 0 0;
+    }
+
+    .pkgCard.pri-med {
+      border: 1px solid rgba(234, 179, 8, 0.5);
+      background: linear-gradient(145deg, rgba(234, 179, 8, 0.05), rgba(15, 23, 42, 0.9));
+      box-shadow: 0 8px 24px rgba(234, 179, 8, 0.15);
+    }
+
+    .pkgCard.pri-med::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--gradient-med);
+      border-radius: var(--radius) var(--radius) 0 0;
+    }
+
+    /* Container */
+    .container{
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      padding-top: 140px;
+    }
+
+    /* Top Bar */
+    .topbar{
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(1200px, calc(100% - 40px));
+      z-index: 1000;
+      background: rgba(15, 23, 42, 0.92);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      padding: 16px 20px;
+      transition: all 0.3s ease;
+    }
+
+    .topbarRow{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      flex-wrap:wrap;
+    }
+
+    .appTitle{
+      display:flex; 
+      align-items:center; 
+      gap:12px; 
+      min-width: 260px;
+    }
+
+    .appTitle h1{
+      font-size: 20px;
+      font-weight: 800;
+      margin: 0;
+      line-height: 1.2;
+      background: linear-gradient(135deg, var(--text) 0%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .appIcon{
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: var(--gradient-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+    }
+
+    .subtitle{
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 4px;
+      line-height: 1.4;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 500px;
+    }
+
+    .modeBadge{
+      font-size: 12px;
+      font-weight: 700;
+      padding: 8px 14px;
+      border-radius: 12px;
+      border: none;
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      white-space: nowrap;
+      letter-spacing: 0.5px;
+    }
+
+    .actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    .btn{
+      padding: 10px 16px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(30, 41, 59, 0.7);
+      color: var(--text);
+      font-weight: 600;
+      font-size: 14px;
+      cursor:pointer;
+      box-shadow: var(--shadow2);
+      transition: all 0.2s ease;
+      user-select:none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn:hover{ 
+      background: rgba(30, 41, 59, 0.9); 
+      border-color: rgba(255,255,255,0.25); 
+      transform: translateY(-1px);
+      box-shadow: 0 12px 28px rgba(0,0,0,0.4);
+    }
+    .btn:active{ transform: translateY(0); }
+
+    .btnPrimary{ 
+      background: var(--gradient-primary);
+      border: none;
+      color: white;
+      font-weight: 700;
+    }
+    
+    .btnSuccess{ 
+      background: var(--gradient-success);
+      border: none;
+      color: white;
+      font-weight: 700;
+    }
+    
+    .btnDanger{ 
+      background: var(--gradient-danger);
+      border: none;
+      color: white;
+      font-weight: 700;
+    }
+
+    .err{
+      margin-top: 10px;
+      font-size: 13px;
+      color: #fca5a5;
+      white-space: pre-wrap;
+      padding: 10px;
+      border-radius: 8px;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+
+    /* Cards */
+    .card{
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow2);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      padding: 20px;
+      margin-bottom: 20px;
+      border-top: 4px solid transparent;
+    }
+
+    .card-header {
+      font-weight: 800;
+      font-size: 16px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--text);
+    }
+
+    /* Breadcrumbs */
+    .crumbsWrap{
+      margin-top: 12px;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      overflow-x:auto;
+      padding-bottom: 4px;
+    }
+    .crumb{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding: 8px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(30, 41, 59, 0.6);
+      cursor:pointer;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+      transition: all 0.2s ease;
+    }
+    .crumb:hover{ 
+      background: rgba(30, 41, 59, 0.9); 
+      border-color: rgba(255,255,255,0.25);
+      transform: translateY(-1px);
+    }
+    .crumbActive{ 
+      background: var(--gradient-primary);
+      border: none;
+      color: white;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+
+    /* File list */
+    .fileItem{
+      display:flex;
+      align-items:center;
+      gap:16px;
+      padding: 16px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(30, 41, 59, 0.5);
+      cursor:pointer;
+      transition: all 0.2s ease;
+      margin-bottom: 12px;
+    }
+    .fileItem:hover{
+      background: rgba(30, 41, 59, 0.8);
+      border-color: rgba(255,255,255,0.2);
+      transform: translateX(4px);
+    }
+    .fileItem:active{ transform: translateX(0); }
+
+    .muted{ font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+    /* Tabs */
+    .tabs{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-top: 16px;
+    }
+    .tab{
+      padding: 10px 16px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(30, 41, 59, 0.5);
+      color: var(--muted);
+      cursor:pointer;
+      font-weight: 600;
+      font-size: 13px;
+      transition: all 0.2s ease;
+    }
+    .tab:hover{
+      background: rgba(30, 41, 59, 0.8);
+      border-color: rgba(255,255,255,0.2);
+    }
+    .tab.active{
+      color: var(--text);
+      border-color: rgba(59, 130, 246, 0.5);
+      background: rgba(59, 130, 246, 0.1);
+    }
+
+    /* Packages */
+    .pkgCard{
+      background: rgba(30, 41, 59, 0.6);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 18px;
+      padding: 20px;
+      margin-bottom: 16px;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+    
+    .pkgCard:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+    }
+
+    .pkgHeader{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:12px;
+      margin-bottom: 16px;
+    }
+
+    .pkgTitle{
+      font-weight: 700;
+      font-size: 16px;
+      color: var(--text);
+      line-height: 1.4;
+    }
+
+    .pkgMeta{
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status{
+      padding: 6px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 700;
+      white-space:nowrap;
+      border: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .pending{ 
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(245, 158, 11, 0.05));
+      color: #f59e0b;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+    .signed{ 
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(16, 185, 129, 0.05));
+      color: #10b981;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    /* Priority Badges - Enhanced */
+    .prioBadge{
+      padding: 6px 14px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 700;
+      border: none;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    
+    .prioBadge.pri-high{ 
+      background: var(--gradient-high);
+      color: white;
+      animation: pulse-badge 2s infinite;
+    }
+    
+    @keyframes pulse-badge {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    
+    .prioBadge.pri-med{ 
+      background: var(--gradient-med);
+      color: white;
+    }
+    
+    .prioBadge.photos-badge{ 
+      background: linear-gradient(135deg, #8b5cf6 0%, #d946ef 100%);
+      color: white;
+    }
+
+    .pkgDetails{
+      font-size: 14px;
+      color: var(--text);
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+
+    .detailRow{
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+
+    .detailItem{
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .detailLabel{
+      font-weight: 600;
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 2px;
+    }
+
+    .detailValue{
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .sigThumb{
+      margin-top: 16px;
+      background: rgba(255,255,255,0.95);
+      border-radius: 12px;
+      padding: 8px;
+      display:inline-block;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    .sigThumb img{ 
+      display:block; 
+      max-width:240px; 
+      max-height:90px; 
+      border-radius: 8px;
+      background: white;
+    }
+
+    /* Photo thumbnails */
+    .photoThumbs{
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin: 16px 0;
+    }
+
+    .photoThumb{
+      width: 60px;
+      height: 60px;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 2px solid var(--border);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: #000;
+    }
+
+    .photoThumb:hover{
+      transform: scale(1.1);
+      border-color: var(--blue);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+    }
+
+    .photoThumb img{
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* Package Actions */
+    .pkgActions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+
+    /* Modal */
+    .modal{
+      display:none;
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,.75);
+      z-index:2000;
+      align-items:center;
+      justify-content:center;
+      padding:20px;
+      backdrop-filter: blur(10px);
+    }
+    
+    .modalContent{
+      width:min(600px,100%);
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(20px);
+      padding: 24px;
+      animation: modalSlide 0.3s ease;
+    }
+
+    @keyframes modalSlide {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .formGroup{ margin-top: 16px; }
+    .label{ 
+      display:block; 
+      font-size: 13px; 
+      color: var(--muted); 
+      margin-bottom: 8px; 
+      font-weight: 600; 
+    }
+    
+    .input{
+      width:100%;
+      padding: 12px 16px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(30, 41, 59, 0.7);
+      color: var(--text);
+      outline:none;
+      font-size: 14px;
+      transition: all 0.2s ease;
+    }
+    
+    .input:focus{
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    }
+
+    .rowBtns{ 
+      display:flex; 
+      gap:12px; 
+      flex-wrap:wrap; 
+      margin-top: 20px; 
+    }
+
+    /* Priority buttons in modal */
+    .prioRow{ 
+      display:flex; 
+      gap:10px; 
+      flex-wrap:wrap; 
+      margin-top: 8px;
+    }
+    
+    .prioBtn{
+      padding: 12px 20px;
+      border-radius: 12px;
+      border: 2px solid transparent;
+      background: rgba(30, 41, 59, 0.7);
+      color: var(--text);
+      font-weight: 600;
+      cursor: pointer;
+      flex: 1;
+      min-width: 100px;
+      transition: all 0.2s ease;
+      text-align: center;
+    }
+    
+    .prioBtn:hover{
+      background: rgba(30, 41, 59, 0.9);
+      transform: translateY(-1px);
+    }
+    
+    .prioBtn.active{ 
+      border-color: currentColor;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    
+    .prioBtn.pri-high.active{ 
+      background: var(--gradient-high);
+      color: white;
+      border-color: rgba(249, 115, 22, 0.5);
+    }
+    
+    .prioBtn.pri-med.active{ 
+      background: var(--gradient-med);
+      color: white;
+      border-color: rgba(234, 179, 8, 0.5);
+    }
+    
+    .prioBtn.pri-low.active{ 
+      background: linear-gradient(135deg, #64748b 0%, #94a3b8 100%);
+      color: white;
+      border-color: rgba(100, 116, 139, 0.5);
+    }
+
+    canvas{ 
+      width:100%; 
+      height:200px; 
+      background:#fff; 
+      border-radius: 14px; 
+      touch-action:none; 
+      margin-top: 16px;
+      border: 1px solid var(--border);
+    }
+
+    /* High Priority Alert */
+    .high-priority-alert {
+      position: absolute;
+      top: -10px;
+      right: 20px;
+      background: var(--gradient-high);
+      color: white;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      box-shadow: 0 4px 12px rgba(249, 115, 22, 0.4);
+      z-index: 1;
+      animation: alert-pulse 2s infinite;
+    }
+
+    @keyframes alert-pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    /* Empty state */
+    .emptyState{
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--muted);
+    }
+
+    .emptyIcon{
+      font-size: 48px;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+
+    /* Sort Files Style - Mejor diseño */
+    .sortFilesContainer {
+      margin-top: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .sortButtons {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    
+    .sortBtn {
+      padding: 10px 16px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(30, 41, 59, 0.5);
+      color: var(--muted);
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 13px;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex: 1;
+      min-width: 140px;
+      justify-content: center;
+    }
+    
+    .sortBtn:hover {
+      background: rgba(30, 41, 59, 0.8);
+      border-color: rgba(255,255,255,0.2);
+    }
+    
+    .sortBtn.active {
+      background: var(--gradient-primary);
+      color: white;
+      border-color: rgba(59, 130, 246, 0.5);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+
+    @media (max-width: 768px){
+      .container{
+        padding: 16px;
+        padding-top: 120px;
+      }
+      
+      .topbar{
+        top: 10px;
+        width: calc(100% - 20px);
+        padding: 12px 16px;
+      }
+      
+      .appTitle h1{
+        font-size: 18px;
+      }
+      
+      .btn{
+        padding: 8px 12px;
+        font-size: 13px;
+      }
+      
+      .pkgCard{
+        padding: 16px;
+      }
+      
+      .detailRow{
+        flex-direction: column;
+        gap: 8px;
+      }
+      
+      .modalContent{
+        padding: 20px 16px;
+      }
+      
+      .sortBtn {
+        min-width: 120px;
+        padding: 8px 12px;
+        font-size: 12px;
+      }
+    }
+
+    /* Scrollbar styling */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: rgba(30, 41, 59, 0.5);
+      border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: var(--blue);
+      border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--purple);
+    }
+  </style>
+</head>
+
+<body class="mode-browse">
+  <!-- TOPBAR -->
+  <div class="topbar" id="topbar">
+    <div class="topbarRow">
+      <div style="min-width: 260px;">
+        <div class="appTitle">
+          <div class="appIcon">📦</div>
+          <div>
+            <h1>Package Transport Log</h1>
+            <div class="subtitle" id="status">Loading…</div>
+          </div>
+        </div>
+
+        <div class="crumbsWrap" id="crumbs"></div>
+      </div>
+
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <div class="modeBadge" id="modeBadge">📂 Browse Mode</div>
+        <div class="actions">
+          <button class="btn" onclick="goHome()">🏠 Home</button>
+          <button class="btn" id="upBtn" style="display:none;" onclick="goUp()">⬆️ Up</button>
+          <button class="btn" onclick="refreshNow()">🔄 Refresh</button>
+          <button class="btn btnPrimary" onclick="openModal('createFileModal')">➕ New File</button>
+          <button class="btn" id="backBtn" style="display:none;" onclick="backToList()">← Back</button>
+        </div>
+      </div>
+    </div>
+    <div class="err" id="err"></div>
+  </div>
+
+  <div class="container" id="container">
+    <!-- FILE BROWSER VIEW -->
+    <div id="fileSelectionView" class="card" style="display:none;">
+      <div class="card-header">📂 File Browser</div>
+      <div class="muted" id="folderLabel"></div>
+      
+      <!-- MEJOR DISEÑO PARA SORT FILES -->
+      <div class="sortFilesContainer">
+        <div class="label">Sort files</div>
+        <div class="sortButtons">
+          <button class="sortBtn active" id="sortModifiedDesc" onclick="setSortMode('modified_desc')">
+            📅 Newest First
+          </button>
+          <button class="sortBtn" id="sortModifiedAsc" onclick="setSortMode('modified_asc')">
+            📅 Oldest First
+          </button>
+          <button class="sortBtn" id="sortNameAsc" onclick="setSortMode('name_asc')">
+            🔤 A → Z
+          </button>
+          <button class="sortBtn" id="sortNameDesc" onclick="setSortMode('name_desc')">
+            🔤 Z → A
+          </button>
+        </div>
+      </div>
+
+      <div id="fileList" style="margin-top:16px;"></div>
+    </div>
+
+    <!-- FILE CONTENT VIEW -->
+    <div id="fileContentView" style="display:none;">
+      <div class="card">
+        <div class="card-header">🗓️ Route Information</div>
+        <div id="headerInfo" style="margin-top:12px;color:var(--text);line-height:1.6;"></div>
+        <div class="tabs" id="tableTabs"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">📦 Packages</div>
+        <div id="packagesList" style="margin-top:16px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Create file -->
+  <div class="modal" id="createFileModal">
+    <div class="modalContent">
+      <div style="font-weight:800;font-size:18px;">➕ Create New File</div>
+
+      <div class="formGroup">
+        <label class="label">Route date</label>
+        <input class="input" type="date" id="newRouteDatePicker">
+        <div class="muted" style="margin-top:8px;">Date is saved as MM/DD/YYYY in the sheet.</div>
+      </div>
+
+      <div class="formGroup">
+        <label class="label">Driver</label>
+        <input class="input" id="newDriver" placeholder="Driver name">
+      </div>
+
+      <div class="formGroup">
+        <label class="label">Route time</label>
+        <select class="input" id="newRouteTime">
+          <option value="10AM">10 AM</option>
+          <option value="2PM">2 PM</option>
+        </select>
+      </div>
+
+      <div class="rowBtns">
+        <button class="btn btnSuccess" onclick="createFile()">✅ Create File</button>
+        <button class="btn" onclick="closeModal('createFileModal')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Add/Edit package -->
+  <div class="modal" id="packageModal">
+    <div class="modalContent">
+      <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;">
+        <div style="font-weight:800;font-size:18px;" id="packageModalTitle">➕ Add Package</div>
+        <button class="btn" onclick="closeModal('packageModal')">✖️ Close</button>
+      </div>
+      <div id="packageForm" style="margin-top:16px;"></div>
+    </div>
+  </div>
+
+  <!-- Modal: Sign on device -->
+  <div class="modal" id="signModal">
+    <div class="modalContent">
+      <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;">
+        <div style="font-weight:800;font-size:18px;" id="signTitle">✍️ Sign on this device</div>
+        <button class="btn" onclick="closeModal('signModal')">✖️ Close</button>
+      </div>
+
+      <div class="muted" id="signMeta" style="margin-top:8px;"></div>
+
+      <div class="formGroup">
+        <label class="label">Receiver name (required)</label>
+        <input class="input" id="signReceiver" placeholder="Full name">
+      </div>
+
+      <canvas id="signCanvas"></canvas>
+
+      <div class="rowBtns">
+        <button class="btn" onclick="clearSignCanvas()">🧽 Clear</button>
+        <button class="btn btnSuccess" onclick="saveSign()">✅ Save Signature</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  let currentFileId = null;
+  let currentFileData = null;
+
+  // Folder navigation
+  let rootFolderId = null;
+  let currentFolderId = null;
+  let parentFolderId = null;
+
+  // Client-side breadcrumb stack
+  let folderStack = []; // [{id,name}]
+
+  // Tabs
+  let activeTableIndex = 0;
+
+  // File sorting (browser view)
+  let fileSortMode = "modified_desc"; // modified_desc | modified_asc | name_asc | name_desc
+  let lastFolderFolders = [];
+  let lastFolderFiles = [];
+
+  // Package modal state
+  let modalMode = "add";
+  let currentTableIndex = 0;
+  let editRowNumber = null;
+
+  // Sign modal state
+  let signRowNumber = null;
+
+  // Canvas state
+  let signCanvas, signCtx, isDrawing=false, lx=0, ly=0;
+
+  function setStatus(s){ document.getElementById('status').textContent = s; syncTopbarOffset(); }
+  function setErr(e){ document.getElementById('err').textContent = e ? String(e) : ""; syncTopbarOffset(); }
+
+  // Dynamically prevent content being hidden under topbar
+  function syncTopbarOffset(){
+    const tb = document.getElementById("topbar");
+    const cont = document.getElementById("container");
+    if(!tb || !cont) return;
+    const h = tb.getBoundingClientRect().height;
+    // add a little breathing room
+    const pad = Math.ceil(h + 22);
+    cont.style.paddingTop = pad + "px";
+  }
+
+  function setMode(mode){
+    const body = document.body;
+    const badge = document.getElementById("modeBadge");
+    if(mode === "file"){
+      body.classList.remove("mode-browse");
+      body.classList.add("mode-file");
+      badge.textContent = "📄 File Mode";
+      document.getElementById("backBtn").style.display = "inline-flex";
+    } else {
+      body.classList.remove("mode-file");
+      body.classList.add("mode-browse");
+      badge.textContent = "📂 Browse Mode";
+      document.getElementById("backBtn").style.display = "none";
+    }
+    // topbar height can change with buttons/layout
+    requestAnimationFrame(syncTopbarOffset);
+  }
+
+  window.onload = () => {
+    signCanvas = document.getElementById("signCanvas");
+    signCtx = signCanvas.getContext("2d");
+    setupSignCanvasEvents();
+
+    syncTopbarOffset();
+    loadFolder(null);
+
+    window.addEventListener("resize", () => syncTopbarOffset());
+  };
+
+  function callServer(functionName, data){
+    return new Promise((resolve, reject) => {
+      google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[functionName](data);
+    });
+  }
+
+  // Refresh should reload what you're currently looking at (file OR folder)
+  async function refreshNow(){
+    setErr("");
+    // If file view is active, reload file
+    const inFileMode = document.body.classList.contains("mode-file") && currentFileId;
+    if(inFileMode){
+      await reloadCurrent();
+      return;
+    }
+    // Otherwise refresh current folder
+    refreshFileList();
+  }
+
+  // -------- Date helpers --------
+  function isoToMDY(iso){
+    const m = (iso||"").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if(!m) return "";
+    return `${m[2]}/${m[3]}/${m[1]}`;
+  }
+  function mdyToISO(mdy){
+    const m = (mdy||"").match(/^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/);
+    if(!m) return "";
+    const mm = m[1].padStart(2,"0");
+    const dd = m[2].padStart(2,"0");
+    let yyyy = m[3];
+    if(yyyy.length === 2) yyyy = "20" + yyyy;
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  // -------- Breadcrumb stack helpers --------
+  function updateFolderStack(folderId, folderName, parentId){
+    if(!rootFolderId){
+      folderStack = [{id: folderId, name: folderName || "Root"}];
+      return;
+    }
+
+    if(folderId === rootFolderId){
+      folderStack = [{id: folderId, name: folderName || "Root"}];
+      return;
+    }
+
+    const idx = folderStack.findIndex(x => x.id === folderId);
+    if(idx >= 0){
+      folderStack = folderStack.slice(0, idx+1);
+      folderStack[idx].name = folderName || folderStack[idx].name;
+      return;
+    }
+
+    const top = folderStack[folderStack.length - 1];
+    if(top && parentId && top.id === parentId){
+      folderStack.push({id: folderId, name: folderName || "Folder"});
+      return;
+    }
+
+    folderStack = [
+      {id: rootFolderId, name: "🏠 Root"},
+      {id: folderId, name: folderName || "Folder"}
+    ];
+  }
+
+  function renderCrumbs(){
+    const wrap = document.getElementById("crumbs");
+    wrap.innerHTML = "";
+    if(!folderStack.length) return;
+
+    folderStack.forEach((c, i) => {
+      const btn = document.createElement("div");
+      btn.className = "crumb" + (i === folderStack.length - 1 ? " crumbActive" : "");
+      const icon = (i === 0) ? "🏠" : "📁";
+      btn.innerHTML = `${icon} ${escapeHtml(c.name || "Folder")}`;
+      btn.onclick = () => loadFolder(c.id);
+      wrap.appendChild(btn);
+    });
+
+    requestAnimationFrame(syncTopbarOffset);
+  }
+
+  // -------- Folder browsing --------
+  async function loadFolder(folderId){
+    setErr("");
+    setMode("browse");
+    setStatus("Loading folder…");
+
+    document.getElementById('fileSelectionView').style.display = "none";
+    document.getElementById('fileContentView').style.display = "none";
+
+    try{
+      const res = await callServer("listFolder", { folderId: folderId || "" });
+      if(!res.success) throw new Error(res.error);
+
+      rootFolderId = res.rootFolderId;
+      currentFolderId = res.folderId;
+      parentFolderId = res.parentId;
+
+      // CORRECCIÓN: Usar parentFolderId en lugar de parentId
+      updateFolderStack(currentFolderId, res.folderName, parentFolderId);
+      renderCrumbs();
+
+      document.getElementById("folderLabel").textContent = `Current folder: ${res.folderName}`;
+      const upBtn = document.getElementById("upBtn");
+      upBtn.style.display = parentFolderId ? "inline-flex" : "none";
+
+      lastFolderFolders = res.subfolders || [];
+      lastFolderFiles = res.files || [];
+      
+      // Update sort buttons
+      updateSortButtons();
+      displayFolderContents(lastFolderFolders, lastFolderFiles);
+      document.getElementById('fileSelectionView').style.display = "block";
+      setStatus("Select or create a file");
+    }catch(e){
+      setStatus("Error");
+      setErr(e.message || e);
+      alert(e.message || e);
+    }
+  }
+
+  // Nueva función para establecer el modo de ordenación
+  function setSortMode(mode){
+    fileSortMode = mode;
+    updateSortButtons();
+    displayFolderContents(lastFolderFolders, lastFolderFiles);
+  }
+
+  // Actualizar botones de ordenación
+  function updateSortButtons(){
+    const buttons = ['sortModifiedDesc', 'sortModifiedAsc', 'sortNameAsc', 'sortNameDesc'];
+    buttons.forEach(id => {
+      const btn = document.getElementById(id);
+      if(btn) btn.classList.remove('active');
+    });
+    
+    let activeBtn = null;
+    switch(fileSortMode){
+      case 'modified_desc': activeBtn = document.getElementById('sortModifiedDesc'); break;
+      case 'modified_asc': activeBtn = document.getElementById('sortModifiedAsc'); break;
+      case 'name_asc': activeBtn = document.getElementById('sortNameAsc'); break;
+      case 'name_desc': activeBtn = document.getElementById('sortNameDesc'); break;
+    }
+    if(activeBtn) activeBtn.classList.add('active');
+  }
+
+  function displayFolderContents(folders, files){
+    const box = document.getElementById("fileList");
+    box.innerHTML = "";
+
+    const foldersSorted = (folders || []).slice().sort((a,b) => (a.name||"").localeCompare(b.name||""));
+    let filesSorted = (files || []).slice();
+    switch(String(fileSortMode||"")){
+      case "name_asc":
+        filesSorted.sort((a,b) => (a.name||"").localeCompare(b.name||""));
+        break;
+      case "name_desc":
+        filesSorted.sort((a,b) => (b.name||"").localeCompare(a.name||""));
+        break;
+      case "modified_asc":
+        filesSorted.sort((a,b) => (a.lastModified||"").localeCompare(b.lastModified||""));
+        break;
+      case "modified_desc":
+      default:
+        filesSorted.sort((a,b) => (b.lastModified||"").localeCompare(a.lastModified||""));
+        break;
+    }
+
+
+    foldersSorted.forEach(f => {
+      const div = document.createElement("div");
+      div.className = "fileItem";
+      div.innerHTML = `
+        <div style="font-size:24px;">📁</div>
+        <div style="min-width:0;">
+          <div style="font-weight:700;">${escapeHtml(f.name)}</div>
+          <div class="muted">Folder</div>
+        </div>
+      `;
+      div.onclick = () => loadFolder(f.id);
+      box.appendChild(div);
+    });
+
+    filesSorted.forEach(f => {
+      const div = document.createElement("div");
+      div.className = "fileItem";
+      const d = f.lastModified ? new Date(f.lastModified).toLocaleString() : "";
+      div.innerHTML = `
+        <div style="font-size:24px;">📊</div>
+        <div style="min-width:0;">
+          <div style="font-weight:700;">${escapeHtml(f.name)}</div>
+          <div class="muted">${escapeHtml(d)}</div>
+        </div>
+      `;
+      div.onclick = () => openFile(f.id, f.name);
+      box.appendChild(div);
+    });
+
+    if(!folders.length && !files.length){
+      box.innerHTML = `
+        <div class="emptyState">
+          <div class="emptyIcon">📁</div>
+          <div style="font-weight:600;margin-bottom:8px;">Empty Folder</div>
+          <div class="muted">This folder is empty. Create a new file or navigate to another folder.</div>
+        </div>
+      `;
+    }
+  }
+
+  function goUp(){
+    if (!parentFolderId) return;
+    loadFolder(parentFolderId);
+  }
+
+  function refreshFileList(){
+    loadFolder(currentFolderId || rootFolderId);
+  }
+
+  function goHome(){
+    if(rootFolderId) loadFolder(rootFolderId);
+  }
+
+  // -------- Open file --------
+  async function openFile(fileId, fileName, opts){
+    setErr("");
+    setMode("file");
+    setStatus("Opening file…");
+
+    try{
+      const res = await callServer("getFileData", { fileId });
+      if(!res.success) throw new Error(res.error);
+
+      currentFileId = fileId;
+      currentFileData = res;
+      const tables = res.tables || [];
+      opts = opts || {};
+      if(opts.preserveTable){
+        const base = (typeof opts.tableIndex === "number") ? opts.tableIndex : activeTableIndex;
+        const max = Math.max(0, tables.length - 1);
+        const idx = Math.min(max, Math.max(0, Number(base) || 0));
+        activeTableIndex = idx;
+      } else {
+        activeTableIndex = 0;
+      }
+
+      document.getElementById('fileSelectionView').style.display = "none";
+      document.getElementById('fileContentView').style.display = "block";
+      setStatus("📄 " + fileName);
+
+      renderFile(res);
+      requestAnimationFrame(syncTopbarOffset);
+    }catch(e){
+      setStatus("Error");
+      setErr(e.message || e);
+      alert(e.message || e);
+    }
+  }
+
+  function renderFile(data){
+    const h = data.header || {};
+    document.getElementById("headerInfo").innerHTML = `
+      <div style="display:flex;gap:20px;flex-wrap:wrap;">
+        <div><b>Date:</b> ${escapeHtml(h.date || "")}</div>
+        <div><b>Driver:</b> ${escapeHtml(h.driver || "")}</div>
+        <div><b>Route time:</b> ${escapeHtml(h.routeTime || "")}</div>
+      </div>
+    `;
+    renderTabs(data.tables || []);
+    renderActiveTable();
+  }
+
+  function renderTabs(tables){
+    const tabs = document.getElementById("tableTabs");
+    tabs.innerHTML = "";
+    tables.forEach((t, i) => {
+      const b = document.createElement("button");
+      b.className = "tab" + (i === activeTableIndex ? " active" : "");
+      b.textContent = t.title || ("Table " + (i+1));
+      b.onclick = () => {
+        activeTableIndex = i;
+        renderTabs(tables);
+        renderActiveTable();
+      };
+      tabs.appendChild(b);
+    });
+  }
+
+  function renderActiveTable(){
+    const list = document.getElementById("packagesList");
+    list.innerHTML = "";
+
+    const tables = (currentFileData && currentFileData.tables) ? currentFileData.tables : [];
+    const table = tables[activeTableIndex];
+    if(!table){
+      list.innerHTML = `<div class="emptyState">
+        <div class="emptyIcon">📦</div>
+        <div style="font-weight:600;margin-bottom:8px;">No Table Found</div>
+        <div class="muted">No table data available in this section.</div>
+      </div>`;
+      return;
+    }
+
+    const arr = table.data || [];
+    if(!arr.length){
+      list.innerHTML = `<div class="emptyState">
+        <div class="emptyIcon">📦</div>
+        <div style="font-weight:600;margin-bottom:8px;">No Packages</div>
+        <div class="muted">No packages in this table. Add your first package below.</div>
+      </div>`;
+    } else {
+      arr.forEach(pkg => {
+        const signed = !!(pkg.signatureImg && pkg.signatureImg.trim());
+        const card = document.createElement("div");
+        const pr = String(pkg.priority || "LOW").toUpperCase();
+        const prClass = pr ? (" pri-" + pr.toLowerCase()) : "";
+        card.className = "pkgCard" + prClass;
+        
+        // Generate photo thumbnails if available
+        let photoThumbs = '';
+        if(pkg.photos && pkg.photos.length > 0) {
+          photoThumbs = `<div class="photoThumbs">`;
+          pkg.photos.forEach(photo => {
+            // Use base64 for thumbnails, open full image if URL exists
+            const thumbSrc = photo.base64 || photo.url || '';
+            const fullSrc = photo.url || photo.base64 || '';
+            if(thumbSrc) {
+              photoThumbs += `
+                <div class="photoThumb" onclick="openLightbox('${fullSrc}')">
+                  <img src="${thumbSrc}" alt="Photo ${photo.slot}" 
+                       onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHJ4PSI4IiBmaWxsPSIjMkMyQzJFIi8+PC9zdmc+'">
+                </div>`;
+            }
+          });
+          photoThumbs += `</div>`;
+        }
+        
+        // High priority alert
+        const highPriorityAlert = pr === "HIGH" ? 
+          `<div class="high-priority-alert">🔥 HIGH PRIORITY</div>` : '';
+
+        card.innerHTML = `
+          ${highPriorityAlert}
+          <div class="pkgHeader">
+            <div style="min-width:0;">
+              <div class="pkgTitle">${escapeHtml(pkg.description || "No description")}</div>
+              <div class="pkgMeta">Row #${pkg.rowNumber}</div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
+              ${(pr && pr !== "LOW") ? `<div class="prioBadge pri-${pr.toLowerCase()}">${pr === "HIGH" ? "🔥 HIGH" : "⚡ MED"}</div>` : ""}
+              ${(pkg.photos && pkg.photos.length) ? `<div class="prioBadge photos-badge">📷 ${pkg.photos.length}</div>` : ""}
+              <div class="status ${signed ? "signed" : "pending"}">${signed ? "✅ SIGNED" : "⏰ PENDING"}</div>
+            </div>
+          </div>
+
+          <div class="pkgDetails">
+            <div class="detailRow">
+              <div class="detailItem">
+                <div class="detailLabel">Date</div>
+                <div class="detailValue">${escapeHtml(pkg.date || "")}</div>
+              </div>
+              <div class="detailItem">
+                <div class="detailLabel">Sender</div>
+                <div class="detailValue">${escapeHtml(pkg.sender || "")}</div>
+              </div>
+              <div class="detailItem">
+                <div class="detailLabel">Receiver</div>
+                <div class="detailValue">${escapeHtml(pkg.receiver || "")}</div>
+              </div>
+            </div>
+            <div class="detailRow">
+              <div class="detailItem">
+                <div class="detailLabel">Quantity</div>
+                <div class="detailValue">${escapeHtml(pkg.qty || "1")}</div>
+              </div>
+              <div class="detailItem">
+                <div class="detailLabel">Location</div>
+                <div class="detailValue">${escapeHtml(pkg.location || "")}</div>
+              </div>
+              ${(pr && pr !== "LOW") ? `
+              <div class="detailItem">
+                <div class="detailLabel">Priority</div>
+                <div class="detailValue">${escapeHtml(pr)}</div>
+              </div>` : ""}
+            </div>
+            ${pkg.notes ? `
+            <div class="detailRow">
+              <div class="detailItem">
+                <div class="detailLabel">Notes</div>
+                <div class="detailValue">${escapeHtml(pkg.notes)}</div>
+              </div>
+            </div>` : ""}
+          </div>
+
+          ${photoThumbs}
+
+          ${signed ? `
+            <div class="sigThumb">
+              <img src="${pkg.signatureImg}" alt="Signature" onerror="this.style.display='none'">
+            </div>
+          ` : ""}
+
+          <div class="pkgActions">
+            <button class="btn" onclick="copySignatureLink(${pkg.rowNumber})">🔗 Signature Link</button>
+            <button class="btn btnSuccess" onclick="openSignNow(${pkg.rowNumber})">✍️ Sign on Device</button>
+            <button class="btn" onclick="openPhotosPopup(${pkg.rowNumber})">📷 Photos</button>
+            <button class="btn btnPrimary" onclick="openEditPackage(${pkg.rowNumber})">✏️ Edit</button>
+            <button class="btn btnDanger" onclick="deletePkg(${pkg.rowNumber})">🗑 Delete</button>
+          </div>
+        `;
+        list.appendChild(card);
+      });
+    }
+
+    const addBtn = document.createElement("button");
+    addBtn.className = "btn btnSuccess";
+    addBtn.style.marginTop = "20px";
+    addBtn.textContent = "➕ Add Package to This Table";
+    addBtn.onclick = () => openAddPackage(activeTableIndex);
+    list.appendChild(addBtn);
+  }
+
+  async function reloadCurrent(){
+    if(!currentFileId) return;
+    const name = (currentFileData && currentFileData.fileName) ? currentFileData.fileName : "File";
+    await openFile(currentFileId, name, { preserveTable: true, tableIndex: activeTableIndex });
+  }
+
+  function backToList(){
+    loadFolder(currentFolderId || rootFolderId);
+  }
+
+  // -------- Create new file --------
+  async function createFile(){
+    const iso = document.getElementById("newRouteDatePicker").value;
+    const routeDate = isoToMDY(iso);
+    const driver = document.getElementById("newDriver").value.trim();
+    const routeTime = document.getElementById("newRouteTime").value;
+
+    if(!routeDate || !driver){
+      alert("Please select a route date and enter the driver.");
+      return;
+    }
+
+    setStatus("Creating file…");
+    try{
+      const res = await callServer("createNewFile", {
+        routeDate,
+        driver,
+        routeTime,
+        folderId: currentFolderId
+      });
+      if(!res.success) throw new Error(res.error);
+
+      closeModal("createFileModal");
+      alert("✅ File created successfully!");
+      await openFile(res.fileId, res.fileName);
+    }catch(e){
+      setStatus("Error");
+      setErr(e.message || e);
+      alert(e.message || e);
+    }
+  }
+
+  // -------- Add/Edit package --------
+  function openAddPackage(tableIndex){
+    modalMode = "add";
+    currentTableIndex = tableIndex;
+    editRowNumber = null;
+    document.getElementById("packageModalTitle").textContent = "➕ Add Package";
+    renderPackageForm({
+      dateISO: "",
+      sender: "",
+      description: "",
+      qty: "1",
+      receiver: "",
+      location: "",
+      notes: "",
+      priority: "LOW"
+    });
+    openModal("packageModal");
+  }
+
+  function openEditPackage(rowNumber){
+    modalMode = "edit";
+    editRowNumber = Number(rowNumber);
+    document.getElementById("packageModalTitle").textContent = "✏️ Edit Package";
+
+    const pkg = findPackageByRow(editRowNumber);
+    if(!pkg){
+      alert("Package not found.");
+      return;
+    }
+
+    renderPackageForm({
+      dateISO: mdyToISO(pkg.date || ""),
+      sender: pkg.sender || "",
+      description: pkg.description || "",
+      qty: pkg.qty || "1",
+      receiver: pkg.receiver || "",
+      location: pkg.location || "",
+      notes: pkg.notes || "",
+      priority: (pkg.priority || "LOW")
+    });
+    openModal("packageModal");
+  }
+
+  function renderPackageForm(p){
+    const box = document.getElementById("packageForm");
+    box.innerHTML = `
+      <div class="formGroup">
+        <label class="label">Package date</label>
+        <input class="input" type="date" id="pDatePicker">
+      </div>
+
+      <div class="formGroup">
+        <label class="label">Priority</label>
+        <div class="prioRow">
+          <button class="prioBtn pri-high" type="button" id="prioHigh" onclick="setPriority('HIGH')">🔥 High</button>
+          <button class="prioBtn pri-med" type="button" id="prioMed" onclick="setPriority('MED')">⚡ Medium</button>
+          <button class="prioBtn pri-low" type="button" id="prioLow" onclick="setPriority('LOW')">📦 Low</button>
+        </div>
+        <input type="hidden" id="pPriority">
+      </div>
+
+
+      <div class="formGroup"><label class="label">Sender</label><input class="input" id="pSender"></div>
+      <div class="formGroup"><label class="label">Description (required)</label><input class="input" id="pDesc"></div>
+      <div class="formGroup"><label class="label">Quantity</label><input class="input" id="pQty"></div>
+      <div class="formGroup"><label class="label">Receiver</label><input class="input" id="pReceiver"></div>
+      <div class="formGroup"><label class="label">Location</label><input class="input" id="pLocation"></div>
+      <div class="formGroup"><label class="label">Notes</label><input class="input" id="pNotes"></div>
+
+      <div class="rowBtns">
+        <button class="btn btnSuccess" onclick="savePackage()">✅ Save Package</button>
+        <button class="btn" onclick="closeModal(\'packageModal\')">Cancel</button>
+      </div>
+    `;
+
+    document.getElementById("pDatePicker").value = p.dateISO || "";
+    setPriority(p.priority || "LOW", true);
+    document.getElementById("pSender").value = p.sender || "";
+    document.getElementById("pDesc").value = p.description || "";
+    document.getElementById("pQty").value = p.qty || "1";
+    document.getElementById("pReceiver").value = p.receiver || "";
+    document.getElementById("pLocation").value = p.location || "";
+    document.getElementById("pNotes").value = p.notes || "";
+  }
+
+  function setPriority(level, silent){
+    const v = String(level || "LOW").toUpperCase();
+    const hidden = document.getElementById("pPriority");
+    if(hidden) hidden.value = v;
+    const map = { HIGH: "prioHigh", MED: "prioMed", LOW: "prioLow" };
+    Object.keys(map).forEach(k => {
+      const el = document.getElementById(map[k]);
+      if(!el) return;
+      if(k === v) el.classList.add("active");
+      else el.classList.remove("active");
+    });
+    if(!silent){
+      // no-op, but kept for clarity
+    }
+  }
+
+  async function savePackage(){
+    try{
+      const iso = document.getElementById("pDatePicker").value;
+      const packageData = {
+        date: iso ? isoToMDY(iso) : "",
+        sender: document.getElementById("pSender").value.trim(),
+        description: document.getElementById("pDesc").value.trim(),
+        qty: document.getElementById("pQty").value.trim(),
+        receiver: document.getElementById("pReceiver").value.trim(),
+        location: document.getElementById("pLocation").value.trim(),
+        notes: document.getElementById("pNotes").value.trim(),
+        priority: (document.getElementById("pPriority") ? document.getElementById("pPriority").value : "LOW")
+      };
+
+      if(!packageData.description){
+        alert("Description is required.");
+        return;
+      }
+
+      if(modalMode === "add"){
+        const res = await callServer("addPackage", { fileId: currentFileId, tableIndex: currentTableIndex, packageData });
+        if(!res.success) throw new Error(res.error);
+      } else {
+        const res = await callServer("updatePackage", { fileId: currentFileId, rowNumber: editRowNumber, updates: packageData });
+        if(!res.success) throw new Error(res.error);
+      }
+
+      // Stay on the same table after refresh
+      activeTableIndex = currentTableIndex;
+      closeModal("packageModal");
+      await reloadCurrent(); // refresh list after changes
+    }catch(e){
+      setErr(e.message || e);
+      alert(e.message || e);
+    }
+  }
+
+  async function deletePkg(rowNumber){
+    try{
+      if(!confirm("Are you sure you want to delete this package? This action cannot be undone.")) return;
+      const res = await callServer("deletePackage", { fileId: currentFileId, rowNumber: Number(rowNumber) });
+      if(!res.success) throw new Error(res.error);
+
+      await reloadCurrent(); // refresh list after delete
+    }catch(e){
+      setErr(e.message || e);
+      alert(e.message || e);
+    }
+  }
+
+  // -------- Signature link --------
+  async function copySignatureLink(rowNumber){
+    try{
+      const res = await callServer("createSignatureLink", { fileId: currentFileId, rowNumber: Number(rowNumber) });
+      if(!res.success) throw new Error(res.error);
+
+      await navigator.clipboard.writeText(res.url);
+      alert("✅ Signature link copied to clipboard!\n\nSend this link via Slack or email for remote signing.");
+    }catch(e){
+      setErr(e.message || e);
+      alert(e.message || e);
+    }
+  }
+
+  // -------- Photos (camera module popup) --------
+  let APP_BASE_URL = null;
+
+  // ✅ PATCH: guardar refs de popups para poder cerrarlos desde Index si Camera no puede
+  let photoPopups = {}; // { [rowNumber]: Window }
+
+  async function ensureAppBaseUrl(){
+    if(APP_BASE_URL) return APP_BASE_URL;
+    const res = await callServer("getWebAppUrl", {});
+    if(!res.success) throw new Error(res.error || "Could not get app URL.");
+    APP_BASE_URL = res.url;
+    return APP_BASE_URL;
+  }
+
+  async function openPhotosPopup(rowNumber){
+    try{
+      const base = await ensureAppBaseUrl();
+      const url = base
+        + "?page=camera"
+        + "&fileId=" + encodeURIComponent(currentFileId || "")
+        + "&rowNumber=" + encodeURIComponent(String(rowNumber))
+        + "&t=" + Date.now(); // ✅ PATCH: anti-cache
+
+      const w = window.open(url, "pkgPhotos_"+rowNumber, "width=980,height=760,scrollbars=no,resizable=yes");
+      if(w) {
+        w.focus();
+        photoPopups[String(rowNumber)] = w; // ✅ PATCH
+      }
+    }catch(e){
+      setErr(e.message || e);
+      alert(e.message || e);
+    }
+  }
+
+  // Simple lightbox for photo thumbnails
+  function openLightbox(imageUrl){
+    const lightbox = document.createElement('div');
+    lightbox.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.95);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      backdrop-filter: blur(10px);
+    `;
+    
+    const img = document.createElement('img');
+    img.src = imageUrl;
+    img.style.cssText = `
+      max-width: 90%;
+      max-height: 90%;
+      object-fit: contain;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+    `;
+    
+    lightbox.appendChild(img);
+    lightbox.onclick = () => document.body.removeChild(lightbox);
+    document.body.appendChild(lightbox);
+  }
+
+  // ✅ PATCH: escuchar updates de Camera:
+  // - PHOTOS_SAVED: refrescar lista (mantiene tab)
+  // - PHOTOS_DONE: refrescar y cerrar popup (si existe)
+  window.addEventListener("message", (ev) => {
+    try{
+      const data = ev.data || {};
+      const rn = Number(data.rowNumber);
+
+      if(data.type === "PHOTOS_SAVED" && rn){
+        reloadCurrent();
+        return;
+      }
+
+      if(data.type === "PHOTOS_DONE" && rn){
+        reloadCurrent();
+
+        // intentar cerrar desde aquí (más confiable que window.close en móviles)
+        const key = String(rn);
+        const w = photoPopups[key];
+        if(w && !w.closed){
+          try{ w.close(); }catch(e){}
+        }
+        try{ delete photoPopups[key]; }catch(e){}
+        return;
+      }
+    }catch(e){}
+  });
+
+  // -------- Sign on device --------
+  function openSignNow(rowNumber){
+    signRowNumber = Number(rowNumber);
+
+    const pkg = findPackageByRow(signRowNumber);
+    document.getElementById("signTitle").textContent = "✍️ Sign on this device";
+    document.getElementById("signMeta").textContent = pkg ? `Row #${pkg.rowNumber} • ${pkg.description || ""}` : `Row #${signRowNumber}`;
+
+    document.getElementById("signReceiver").value = pkg && pkg.receiver ? pkg.receiver : "";
+    openModal("signModal");
+
+    setTimeout(() => { fitSignCanvas(); clearSignCanvas(); }, 60);
+  }
+
+  function fitSignCanvas(){
+    const dpr = window.devicePixelRatio || 1;
+    const rect = signCanvas.getBoundingClientRect();
+    signCanvas.width = Math.max(300, rect.width) * dpr;
+    signCanvas.height = Math.max(160, rect.height) * dpr;
+    signCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    signCtx.lineWidth = 3;
+    signCtx.lineCap = "round";
+    signCtx.strokeStyle = "#111";
+  }
+
+  function setupSignCanvasEvents(){
+    function getPos(evt){
+      const r = signCanvas.getBoundingClientRect();
+      const cx = (evt.touches ? evt.touches[0].clientX : evt.clientX) - r.left;
+      const cy = (evt.touches ? evt.touches[0].clientY : evt.clientY) - r.top;
+      return { x: cx, y: cy };
+    }
+    function start(evt){
+      evt.preventDefault();
+      isDrawing = true;
+      const p = getPos(evt);
+      lx = p.x; ly = p.y;
+    }
+    function move(evt){
+      if(!isDrawing) return;
+      evt.preventDefault();
+      const p = getPos(evt);
+      signCtx.beginPath();
+      signCtx.moveTo(lx, ly);
+      signCtx.lineTo(p.x, p.y);
+      signCtx.stroke();
+      lx = p.x; ly = p.y;
+    }
+    function end(evt){
+      evt.preventDefault();
+      isDrawing = false;
+    }
+
+    signCanvas.addEventListener("mousedown", start);
+    signCanvas.addEventListener("mousemove", move);
+    window.addEventListener("mouseup", end);
+
+    signCanvas.addEventListener("touchstart", start, { passive:false });
+    signCanvas.addEventListener("touchmove", move, { passive:false });
+    signCanvas.addEventListener("touchend", end, { passive:false });
+  }
+
+  function clearSignCanvas(){
+    signCtx.clearRect(0,0,signCanvas.width,signCanvas.height);
+    signCtx.fillStyle = "#fff";
+    signCtx.fillRect(0,0,signCanvas.width,signCanvas.height);
+  }
+
+  async function saveSign(){
+    try{
+      setErr("");
+      const receiverName = document.getElementById("signReceiver").value.trim();
+      if(!receiverName) return alert("Receiver name is required.");
+
+      const dataUrl = signCanvas.toDataURL("image/png");
+      if(dataUrl.length < 1200) return alert("Please sign first.");
+
+      const res = await callServer("saveSignatureDirect", {
+        fileId: currentFileId,
+        rowNumber: signRowNumber,
+        signatureData: dataUrl,
+        receiverName
+      });
+      if(!res.success) throw new Error(res.error);
+
+      closeModal("signModal");
+      await reloadCurrent(); // refresh list after signature saved
+    }catch(e){
+      setErr(e.message || e);
+      alert(e.message || e);
+    }
+  }
+
+  // -------- Helpers --------
+  function findPackageByRow(rowNumber){
+    if (!currentFileData) return null;
+    for (const table of (currentFileData.tables || [])) {
+      for (const pkg of (table.data || [])) {
+        if (Number(pkg.rowNumber) === Number(rowNumber)) return pkg;
+      }
+    }
+    return null;
+  }
+
+  function openModal(id){ 
+    document.getElementById(id).style.display = "flex"; 
+    requestAnimationFrame(syncTopbarOffset); 
+  }
+  
+  function closeModal(id){ 
+    document.getElementById(id).style.display = "none"; 
+    requestAnimationFrame(syncTopbarOffset); 
+  }
+
+  function escapeHtml(s){
+    s = (s || "").toString();
+    return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+  }
+</script>
+</body>
+</html>
