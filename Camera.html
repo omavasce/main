@@ -399,6 +399,7 @@
 
       const thumbSrc = filled ? (ph.base64 || ph.url || "") : "";
       const fullSrc = filled ? (ph.url || ph.base64 || "") : "";
+      const fileId = filled ? (ph.id || "") : "";
 
       card.innerHTML = `
         <div class="slot-header">
@@ -409,7 +410,7 @@
         <div class="slot-preview">
           ${
             filled
-            ? `<img class="slot-image" src="${thumbSrc}" alt="Photo ${slot}" onclick="openImage('${fullSrc}')"
+            ? `<img class="slot-image" src="${thumbSrc}" alt="Photo ${slot}" onclick="openImage('${fileId}', '${fullSrc}')"
                    onerror="this.src='${fallbackThumb()}'">`
             : `<div class="empty-preview" onclick="startCapture(${slot})">
                  <i class="fa-solid fa-camera"></i>
@@ -443,9 +444,23 @@
     return "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTQwIiBoZWlnaHQ9IjE0MCIgdmlld0JveD0iMCAwIDE0MCAxNDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjE0MCIgaGVpZ2h0PSIxNDAiIHJ4PSIxNiIgZmlsbD0iIzFjMWMxZSIgc3Ryb2tlPSIjMzgzODNhIi8+PC9zdmc+";
   }
 
-  function openImage(src){
-    // simple: open in new tab (no lightbox needed)
-    window.open(src, "_blank");
+  async function openImage(fileId, fallbackSrc){
+    if(!fileId){
+      if(fallbackSrc) window.open(fallbackSrc, "_blank");
+      return;
+    }
+
+    try{
+      const res = await callServer("getPhotoFullBase64", { fileId });
+      if(res && res.success && res.base64){
+        window.open(res.base64, "_blank");
+        return;
+      }
+    }catch(e){
+      // ignore and fall back
+    }
+
+    if(fallbackSrc) window.open(fallbackSrc, "_blank");
   }
 
   // --------- Capture (camera) ----------

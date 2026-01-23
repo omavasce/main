@@ -1370,9 +1370,10 @@
             // Use base64 for thumbnails, open full image if URL exists
             const thumbSrc = photo.base64 || photo.url || '';
             const fullSrc = photo.url || photo.base64 || '';
+            const fileId = photo.id || '';
             if(thumbSrc) {
               photoThumbs += `
-                <div class="photoThumb" onclick="openLightbox('${fullSrc}')">
+                <div class="photoThumb" onclick="openPhotoLightbox('${fileId}', '${fullSrc}')">
                   <img src="${thumbSrc}" alt="Photo ${photo.slot}" 
                        onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHJ4PSI4IiBmaWxsPSIjMkMyQzJFIi8+PC9zdmc+'">
                 </div>`;
@@ -1738,6 +1739,25 @@
     lightbox.appendChild(img);
     lightbox.onclick = () => document.body.removeChild(lightbox);
     document.body.appendChild(lightbox);
+  }
+
+  async function openPhotoLightbox(fileId, fallbackSrc){
+    if(!fileId){
+      if(fallbackSrc) openLightbox(fallbackSrc);
+      return;
+    }
+
+    try{
+      const res = await callServer("getPhotoFullBase64", { fileId });
+      if(res && res.success && res.base64){
+        openLightbox(res.base64);
+        return;
+      }
+    }catch(e){
+      // ignore and fall back
+    }
+
+    if(fallbackSrc) openLightbox(fallbackSrc);
   }
 
   // ✅ PATCH: escuchar updates de Camera:

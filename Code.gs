@@ -189,6 +189,30 @@ function getPhotoAsBase64_(fileId) {
   }
 }
 
+function getPhotoFullBase64(payload) {
+  try {
+    payload = payload || {};
+    const fileId = String(payload.fileId || "").trim();
+    if (!fileId) throw new Error("fileId is required.");
+
+    const file = DriveApp.getFileById(fileId);
+    const blob = file.getBlob();
+    const bytes = blob.getBytes();
+    const base64 = Utilities.base64Encode(bytes);
+    const mimeType = blob.getContentType() || "image/jpeg";
+
+    return {
+      success: true,
+      base64: `data:${mimeType};base64,${base64}`,
+      mimeType,
+      fileName: file.getName(),
+      fileId
+    };
+  } catch (err) {
+    return { success: false, error: String(err) };
+  }
+}
+
 /*****************
  * Get photo slots (reads PHOTOID + PHOTOTHUMB from notes)
  *****************/

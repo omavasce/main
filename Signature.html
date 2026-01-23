@@ -439,13 +439,14 @@
           // Use Base64 for thumbnails, open full image if URL exists
           const thumbSrc = photo.base64 || photo.url || '';
           const fullSrc = photo.url || photo.base64 || '';
+          const fileId = photo.id || '';
           if (thumbSrc) {
             const img = document.createElement('img');
             img.className = 'photo-thumb';
             img.src = thumbSrc;
             img.alt = `Photo ${photo.slot}`;
             img.title = `Click to view photo ${photo.slot}`;
-            img.onclick = () => openLightbox(fullSrc);
+            img.onclick = () => openPhotoLightbox(fileId, fullSrc);
             img.onerror = function() {
               // Fallback if image fails to load
               this.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIHJ4PSIxMCIgZmlsbD0iIzJDMkMyRSIvPjwvc3ZnPg==';
@@ -522,6 +523,25 @@
 
     // Prevent body scroll when lightbox is open
     document.body.style.overflow = 'hidden';
+  }
+
+  async function openPhotoLightbox(fileId, fallbackSrc){
+    if(!fileId){
+      if(fallbackSrc) openLightbox(fallbackSrc);
+      return;
+    }
+
+    try{
+      const res = await callServer("getPhotoFullBase64", { fileId });
+      if(res && res.success && res.base64){
+        openLightbox(res.base64);
+        return;
+      }
+    }catch(e){
+      // ignore and fall back
+    }
+
+    if(fallbackSrc) openLightbox(fallbackSrc);
   }
 
   function closeLightbox() {
