@@ -246,6 +246,55 @@
     }
     .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
     #fileInput{display:none}
+
+    /* Lightbox */
+    .lightbox{
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,0.85);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:20px;
+      z-index:4500;
+      backdrop-filter:blur(10px);
+    }
+    .lightbox.active{display:flex}
+    .lightbox-content{
+      position:relative;
+      max-width:min(90vw, 960px);
+      max-height:85vh;
+    }
+    .lightbox-img{
+      max-width:100%;
+      max-height:85vh;
+      border-radius:16px;
+      border:1px solid var(--ios-border);
+      background:#111827;
+      box-shadow:0 20px 60px rgba(0,0,0,0.5);
+    }
+    .lightbox-close{
+      position:absolute;
+      top:-15px;
+      right:-15px;
+      width:40px;
+      height:40px;
+      border-radius:50%;
+      background:rgba(30, 41, 59, 0.9);
+      border:1px solid var(--ios-border);
+      color:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:20px;
+      cursor:pointer;
+      z-index:4600;
+      transition:all 0.2s ease;
+    }
+    .lightbox-close:hover{
+      background:var(--ios-red);
+      transform:scale(1.1);
+    }
   </style>
 </head>
 <body>
@@ -294,6 +343,14 @@
   </div>
 
   <div class="toast" id="toast"></div>
+
+  <!-- Lightbox -->
+  <div class="lightbox" id="lightbox" onclick="closeLightbox()">
+    <div class="lightbox-content" onclick="event.stopPropagation()">
+      <div class="lightbox-close" onclick="closeLightbox()">×</div>
+      <img class="lightbox-img" id="lightboxImg" alt="Photo">
+    </div>
+  </div>
 
 <script>
   const FILE_ID = "<?= fileId ?>";
@@ -444,24 +501,48 @@
     return "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTQwIiBoZWlnaHQ9IjE0MCIgdmlld0JveD0iMCAwIDE0MCAxNDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjE0MCIgaGVpZ2h0PSIxNDAiIHJ4PSIxNiIgZmlsbD0iIzFjMWMxZSIgc3Ryb2tlPSIjMzgzODNhIi8+PC9zdmc+";
   }
 
+  function openLightbox(imageSrc){
+    const lightbox = document.getElementById("lightbox");
+    const lightboxImg = document.getElementById("lightboxImg");
+    if(!lightbox || !lightboxImg) return;
+
+    lightboxImg.src = imageSrc;
+    lightbox.classList.add("active");
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeLightbox(){
+    const lightbox = document.getElementById("lightbox");
+    const lightboxImg = document.getElementById("lightboxImg");
+    if(!lightbox || !lightboxImg) return;
+
+    lightbox.classList.remove("active");
+    lightboxImg.src = "";
+    document.body.style.overflow = "";
+  }
+
   async function openImage(fileId, fallbackSrc){
     if(!fileId){
-      if(fallbackSrc) window.open(fallbackSrc, "_blank");
+      if(fallbackSrc) openLightbox(fallbackSrc);
       return;
     }
 
     try{
       const res = await callServer("getPhotoFullBase64", { fileId });
       if(res && res.success && res.base64){
-        window.open(res.base64, "_blank");
+        openLightbox(res.base64);
         return;
       }
     }catch(e){
       // ignore and fall back
     }
 
-    if(fallbackSrc) window.open(fallbackSrc, "_blank");
+    if(fallbackSrc) openLightbox(fallbackSrc);
   }
+
+  document.addEventListener("keydown", (e) => {
+    if(e.key === "Escape") closeLightbox();
+  });
 
   // --------- Capture (camera) ----------
   async function startCapture(slot){
