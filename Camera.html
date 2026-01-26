@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>📸 Package Photos</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --ios-bg: #000000;
+      --ios-card: #1c1c1e;
+      --ios-card-light: #2c2c2e;
+      --ios-border: #38383a;
+      --ios-text: #ffffff;
+      --ios-text-secondary: #98989d;
+      --ios-accent: #007aff;
+      --ios-accent-dark: #0056cc;
+      --ios-green: #30d158;
+      --ios-orange: #ff9f0a;
+      --ios-red: #ff453a;
+      --ios-purple: #bf5af2;
+      --ios-shadow: 0 4px 40px rgba(0, 0, 0, 0.4);
+      --ios-blur: saturate(180%) blur(20px);
+      --safe-area-top: env(safe-area-inset-top, 0px);
+      --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    body{
+      font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','SF Pro Text','Segoe UI',system-ui,sans-serif;
+      background:var(--ios-bg);
+      color:var(--ios-text);
+      height:100vh;
+      overflow:hidden;
+      padding-top:var(--safe-area-top);
+      padding-bottom:var(--safe-area-bottom);
+    }
+    .app-container{height:100vh;display:flex;flex-direction:column}
+    .app-header{
+      padding:16px 20px 12px;
+      background:rgba(28,28,30,0.8);
+      backdrop-filter:var(--ios-blur);
+      border-bottom:1px solid var(--ios-border);
+      z-index:100;
+    }
+    .app-title{font-size:20px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:10px}
+    .app-title-icon{
+      width:32px;height:32px;
+      background:linear-gradient(135deg,var(--ios-accent),var(--ios-purple));
+      border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;
+    }
+    .package-info{font-size:14px;color:var(--ios-text-secondary);line-height:1.4}
+    .package-info strong{color:var(--ios-text);font-weight:600}
+
+    .photos-grid{
+      flex:1;
+      padding:16px;
+      display:grid;
+      grid-template-columns:repeat(2,1fr);
+      gap:12px;
+      overflow-y:auto;
+      -webkit-overflow-scrolling:touch;
+    }
+    @media (min-width:480px) and (max-width:767px){.photos-grid{grid-template-columns:repeat(3,1fr)}}
+    @media (min-width:768px){.photos-grid{grid-template-columns:repeat(5,1fr);gap:16px}}
+
+    .photo-slot{
+      background:var(--ios-card);
+      border-radius:16px;
+      border:1px solid var(--ios-border);
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+      transition:all 0.2s ease;
+      position:relative;
+    }
+    .slot-header{
+      padding:12px;
+      background:rgba(0,0,0,0.25);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      border-bottom:1px solid var(--ios-border);
+    }
+    .slot-number{font-size:15px;font-weight:600}
+    .slot-status{
+      font-size:11px;font-weight:600;
+      padding:3px 8px;border-radius:12px;
+      background:var(--ios-card-light);
+      color:var(--ios-text-secondary);
+    }
+    .slot-status.filled{background:var(--ios-green);color:#000}
+    .slot-status.empty{background:var(--ios-card-light);color:var(--ios-text-secondary)}
+
+    .slot-preview{
+      flex:1;
+      padding:14px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      min-height:140px;
+    }
+    .slot-image{
+      width:100%;height:140px;
+      object-fit:cover;
+      border-radius:12px;
+      border:1px solid var(--ios-border);
+      background:#000;
+      cursor:pointer;
+    }
+    .empty-preview{
+      width:100%;height:140px;
+      border:2px dashed var(--ios-border);
+      border-radius:12px;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      color:var(--ios-text-secondary);
+      background:rgba(255,255,255,0.03);
+      cursor:pointer;
+      gap:8px;
+    }
+    .empty-preview i{font-size:26px;opacity:0.8}
+
+    .slot-actions{
+      padding:14px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      border-top:1px solid var(--ios-border);
+      background:rgba(0,0,0,0.15);
+    }
+    .slot-btn{
+      width:100%;
+      padding:12px;
+      border-radius:12px;
+      border:none;
+      background:var(--ios-card-light);
+      color:var(--ios-text);
+      font-size:14px;
+      font-weight:600;
+      cursor:pointer;
+      display:flex;align-items:center;justify-content:center;gap:8px;
+      height:44px;
+      transition:all 0.15s ease;
+    }
+    .slot-btn:active{transform:scale(0.98);opacity:0.9}
+    .slot-btn.capture{background:var(--ios-accent);color:#fff}
+    .slot-btn.upload{background:var(--ios-green);color:#000}
+    .slot-btn.remove{background:var(--ios-red);color:#fff}
+    .slot-btn.loading,
+    .done-button.loading,
+    .cam-btn.loading,
+    .shutter.loading{
+      opacity:0.7;
+      pointer-events:none;
+    }
+    .slot-btn.loading::after,
+    .done-button.loading::after{
+      content:" ⏳";
+      font-size:13px;
+    }
+
+    .done-button-container{
+      padding:18px;
+      border-top:1px solid var(--ios-border);
+      background:var(--ios-card);
+    }
+    .done-button{
+      width:100%;
+      padding:16px;
+      border-radius:14px;
+      background:linear-gradient(135deg,var(--ios-accent),var(--ios-accent-dark));
+      color:white;border:none;
+      font-size:17px;font-weight:700;
+      cursor:pointer;
+      display:flex;align-items:center;justify-content:center;gap:10px;
+    }
+    .done-button:active{transform:scale(0.99);opacity:0.95}
+
+    .camera-overlay{
+      position:fixed;inset:0;
+      background:#000;
+      z-index:1000;
+      display:none;
+      flex-direction:column;
+    }
+    .camera-overlay.active{display:flex}
+    .camera-viewfinder{flex:1;position:relative;overflow:hidden;background:#000}
+    .camera-video{width:100%;height:100%;object-fit:cover}
+    .camera-topbar{
+      position:absolute;top:var(--safe-area-top);left:0;right:0;
+      padding:16px;
+      display:flex;justify-content:space-between;align-items:center;
+      pointer-events:auto;
+    }
+    .cam-btn{
+      width:42px;height:42px;border-radius:50%;
+      border:none;
+      background:rgba(60,60,67,0.6);
+      color:#fff;font-size:18px;
+      display:flex;align-items:center;justify-content:center;
+      backdrop-filter:blur(14px);
+      cursor:pointer;
+    }
+    .cam-btn:active{transform:scale(0.92)}
+    .camera-bottombar{
+      position:absolute;left:0;right:0;
+      bottom:calc(var(--safe-area-bottom) + 20px);
+      display:flex;justify-content:center;align-items:center;
+      pointer-events:auto;
+    }
+    .shutter{
+      width:76px;height:76px;border-radius:50%;
+      background:#fff;border:4px solid rgba(255,255,255,0.25);
+      cursor:pointer;
+      position:relative;
+    }
+    .shutter:active{transform:scale(0.92)}
+    .flashFX{
+      position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;
+      transition:opacity 0.12s ease;
+    }
+    .flashFX.active{opacity:0.85}
+
+    .loading-overlay{
+      position:fixed;inset:0;
+      background:rgba(0,0,0,0.92);
+      z-index:3000;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      flex-direction:column;
+      gap:16px;
+    }
+    .loading-overlay.active{display:flex}
+    .spinner{
+      width:56px;height:56px;border-radius:50%;
+      border:4px solid rgba(255,255,255,0.15);
+      border-top-color:var(--ios-accent);
+      animation:spin 1s linear infinite;
+    }
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .toast{
+      position:fixed;
+      bottom:100px;left:50%;
+      transform:translateX(-50%) translateY(80px);
+      background:var(--ios-card);
+      border:1px solid var(--ios-border);
+      border-radius:14px;
+      padding:14px 18px;
+      color:var(--ios-text);
+      font-weight:700;
+      z-index:4000;
+      opacity:0;
+      transition:all 0.25s ease;
+      max-width:90%;
+      text-align:center;
+    }
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+    #fileInput{display:none}
+
+    /* Lightbox */
+    .lightbox{
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,0.85);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:20px;
+      z-index:4500;
+      backdrop-filter:blur(10px);
+    }
+    .lightbox.active{display:flex}
+    .lightbox-content{
+      position:relative;
+      max-width:min(90vw, 960px);
+      max-height:85vh;
+    }
+    .lightbox-img{
+      max-width:100%;
+      max-height:85vh;
+      border-radius:16px;
+      border:1px solid var(--ios-border);
+      background:#111827;
+      box-shadow:0 20px 60px rgba(0,0,0,0.5);
+    }
+    .lightbox-close{
+      position:absolute;
+      top:-15px;
+      right:-15px;
+      width:40px;
+      height:40px;
+      border-radius:50%;
+      background:rgba(30, 41, 59, 0.9);
+      border:1px solid var(--ios-border);
+      color:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:20px;
+      cursor:pointer;
+      z-index:4600;
+      transition:all 0.2s ease;
+    }
+    .lightbox-close:hover{
+      background:var(--ios-red);
+      transform:scale(1.1);
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <div class="app-header">
+      <div class="app-title">
+        <div class="app-title-icon">📷</div>
+        Package Photos
+      </div>
+      <div class="package-info" id="pkgInfo">Loading…</div>
+    </div>
+
+    <div class="photos-grid" id="grid"></div>
+
+    <div class="done-button-container">
+      <button class="done-button" onclick="doneAndClose(this)">
+        <i class="fa-solid fa-check"></i> Done
+      </button>
+    </div>
+  </div>
+
+  <!-- Camera Overlay -->
+  <div class="camera-overlay" id="camOverlay">
+    <div class="camera-viewfinder">
+      <video class="camera-video" id="video" autoplay playsinline></video>
+      <div class="flashFX" id="flashFX"></div>
+
+      <div class="camera-topbar">
+        <button class="cam-btn" onclick="closeCamera(this)" title="Close"><i class="fa-solid fa-xmark"></i></button>
+        <div style="display:flex;gap:12px;">
+          <button class="cam-btn" onclick="switchCamera(this)" title="Switch"><i class="fa-solid fa-rotate"></i></button>
+        </div>
+      </div>
+
+      <div class="camera-bottombar">
+        <button class="shutter" onclick="takePhoto(this)" title="Shutter"></button>
+      </div>
+    </div>
+  </div>
+
+  <input type="file" id="fileInput" accept="image/*">
+
+  <div class="loading-overlay" id="loading">
+    <div class="spinner"></div>
+    <div style="color:#fff;font-weight:700;">Saving photo…</div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <!-- Lightbox -->
+  <div class="lightbox" id="lightbox" onclick="closeLightbox()">
+    <div class="lightbox-content" onclick="event.stopPropagation()">
+      <div class="lightbox-close" onclick="closeLightbox()">×</div>
+      <img class="lightbox-img" id="lightboxImg" alt="Photo">
+    </div>
+  </div>
+
+<script>
+  const FILE_ID = "<?= fileId ?>";
+  const ROW_NUMBER = Number("<?= rowNumber ?>");
+
+  const SLOT_COUNT = 5;
+
+  // HARD LIMITS para evitar el error de GAS
+  const SAFE_MAX_SIDE = 1000;         // <= 1M pix en la mayoría de casos
+  const SAFE_MAX_PIXELS = 950000;     // margen
+  const SAFE_MAX_BYTES = 1.6 * 1024 * 1024; // margen bajo 2MB
+
+  let pkg = null;
+  let photos = [];
+  let currentSlot = null;
+
+  // camera
+  let stream = null;
+  let facingMode = "environment"; // or "user"
+
+  function callServer(name, data){
+    return new Promise((resolve, reject) => {
+      google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[name](data);
+    });
+  }
+
+  function setToast(msg){
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    setTimeout(() => t.classList.remove("show"), 1800);
+  }
+
+  function setLoading(on){
+    document.getElementById("loading").classList.toggle("active", !!on);
+  }
+
+  // ✅ PATCH: notificar a Index (opener) para refrescar y/o cerrar
+  function notifyParent(type){
+    const payload = { type, rowNumber: ROW_NUMBER };
+    try{ if(window.opener && !window.opener.closed) window.opener.postMessage(payload, "*"); }catch(e){}
+    try{ if(window.parent && window.parent !== window) window.parent.postMessage(payload, "*"); }catch(e){}
+  }
+
+  // ✅ PATCH: cerrar agresivo (por si el navegador no permite close normal)
+  function closeSelfHard(){
+    // stop stream if the camera is still open
+    try{ stopStream(); }catch(e){}
+    try{ document.getElementById("camOverlay").classList.remove("active"); }catch(e){}
+
+    // intentos de cierre
+    try{ window.close(); }catch(e){}
+    try{ self.close(); }catch(e){}
+    try{ window.open("", "_self"); window.close(); }catch(e){}
+
+    // fallback visual (si el tab no se puede cerrar)
+    setTimeout(() => {
+      try{
+        document.body.innerHTML = `
+          <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;background:#000;color:#fff;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,system-ui;">
+            <div>
+              <div style="font-size:22px;font-weight:800;margin-bottom:10px;">✅ Done</div>
+              <div style="opacity:0.75;margin-bottom:18px;">You can close this tab now.</div>
+              <button onclick="window.close()" style="padding:14px 18px;border-radius:12px;border:0;background:#007aff;color:#fff;font-weight:800;cursor:pointer;">
+                Close
+              </button>
+            </div>
+          </div>
+        `;
+      }catch(e){}
+    }, 250);
+  }
+
+  async function init(){
+    await loadPackage();
+    renderGrid();
+  }
+
+  async function loadPackage(){
+    const res = await callServer("getPackageForPhotos", { fileId: FILE_ID, rowNumber: ROW_NUMBER });
+    if(!res.success) throw new Error(res.error);
+    pkg = res.package || {};
+    photos = (pkg.photos || []);
+    document.getElementById("pkgInfo").innerHTML =
+      `<strong>Row #${pkg.rowNumber}</strong> • ${escapeHtml(pkg.description || "")}<br>` +
+      `<span style="color:#98989d">${escapeHtml(res.header?.date || "")} • ${escapeHtml(res.header?.routeTime || "")} • ${escapeHtml(res.header?.driver || "")}</span>`;
+  }
+
+  function getPhotoBySlot(slot){
+    return (photos || []).find(p => Number(p.slot) === Number(slot)) || null;
+  }
+
+  function renderGrid(){
+    const grid = document.getElementById("grid");
+    grid.innerHTML = "";
+
+    for(let slot=1; slot<=SLOT_COUNT; slot++){
+      const ph = getPhotoBySlot(slot);
+      const filled = !!ph;
+
+      const card = document.createElement("div");
+      card.className = "photo-slot";
+
+      const thumbSrc = filled ? (ph.base64 || ph.url || "") : "";
+      const fullSrc = filled ? (ph.url || ph.base64 || "") : "";
+      const fileId = filled ? (ph.id || "") : "";
+
+      card.innerHTML = `
+        <div class="slot-header">
+        <div class="slot-number">Photo ${slot}</div>
+        <div class="slot-status ${filled ? "filled" : "empty"}">${filled ? "FILLED" : "EMPTY"}</div>
+        </div>
+
+        <div class="slot-preview">
+          ${
+            filled
+            ? `<img class="slot-image" src="${thumbSrc}" alt="Photo ${slot}" onclick="openImage('${fileId}', '${fullSrc}')"
+                   onerror="this.src='${fallbackThumb()}'">`
+            : `<div class="empty-preview" onclick="startCapture(${slot})">
+                 <i class="fa-solid fa-camera"></i>
+                 <div style="font-weight:700;">Tap to capture</div>
+               </div>`
+          }
+        </div>
+
+        <div class="slot-actions">
+          <button class="slot-btn capture" onclick="startCapture(${slot}, this)">
+            <i class="fa-solid fa-camera"></i> Capture
+          </button>
+          <button class="slot-btn upload" onclick="startUpload(${slot}, this)">
+            <i class="fa-solid fa-upload"></i> Upload
+          </button>
+          ${
+            filled
+            ? `<button class="slot-btn remove" onclick="removePhoto(${slot}, this)">
+                 <i class="fa-solid fa-trash"></i> Remove
+               </button>`
+            : ""
+          }
+        </div>
+      `;
+
+      grid.appendChild(card);
+    }
+  }
+
+  function fallbackThumb(){
+    return "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTQwIiBoZWlnaHQ9IjE0MCIgdmlld0JveD0iMCAwIDE0MCAxNDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjE0MCIgaGVpZ2h0PSIxNDAiIHJ4PSIxNiIgZmlsbD0iIzFjMWMxZSIgc3Ryb2tlPSIjMzgzODNhIi8+PC9zdmc+";
+  }
+
+  function openLightbox(imageSrc){
+    const lightbox = document.getElementById("lightbox");
+    const lightboxImg = document.getElementById("lightboxImg");
+    if(!lightbox || !lightboxImg) return;
+
+    lightboxImg.src = imageSrc;
+    lightbox.classList.add("active");
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeLightbox(){
+    const lightbox = document.getElementById("lightbox");
+    const lightboxImg = document.getElementById("lightboxImg");
+    if(!lightbox || !lightboxImg) return;
+
+    lightbox.classList.remove("active");
+    lightboxImg.src = "";
+    document.body.style.overflow = "";
+  }
+
+  async function openImage(fileId, fallbackSrc){
+    if(!fileId){
+      if(fallbackSrc) openLightbox(fallbackSrc);
+      return;
+    }
+
+    try{
+      const res = await callServer("getPhotoFullBase64", { fileId });
+      if(res && res.success && res.base64){
+        openLightbox(res.base64);
+        return;
+      }
+    }catch(e){
+      // ignore and fall back
+    }
+
+    if(fallbackSrc) openLightbox(fallbackSrc);
+  }
+
+  document.addEventListener("keydown", (e) => {
+    if(e.key === "Escape") closeLightbox();
+  });
+
+  // --------- Capture (camera) ----------
+  async function startCapture(slot, btn){
+    currentSlot = Number(slot);
+    return withButtonLock(btn, async () => {
+      try{
+        await openCamera();
+      }catch(e){
+        alert(e.message || e);
+      }
+    });
+  }
+
+  async function openCamera(){
+    const overlay = document.getElementById("camOverlay");
+    overlay.classList.add("active");
+
+    const video = document.getElementById("video");
+
+    if(stream){
+      stopStream();
+    }
+
+    const constraints = {
+      video: {
+        facingMode: { ideal: facingMode },
+        width: { ideal: 1920 },
+        height: { ideal: 1080 }
+      },
+      audio: false
+    };
+
+    stream = await navigator.mediaDevices.getUserMedia(constraints);
+    video.srcObject = stream;
+    await video.play();
+  }
+
+  function closeCamera(btn){
+    if(btn) btn.classList.add("loading");
+    stopStream();
+    document.getElementById("camOverlay").classList.remove("active");
+    if(btn) btn.classList.remove("loading");
+  }
+
+  function stopStream(){
+    try{
+      if(stream){
+        stream.getTracks().forEach(t => t.stop());
+        stream = null;
+      }
+    }catch(e){}
+  }
+
+  async function switchCamera(btn){
+    return withButtonLock(btn, async () => {
+      facingMode = (facingMode === "environment") ? "user" : "environment";
+      await openCamera();
+    });
+  }
+
+  // Core: encode with limits to avoid 2MB/1M pixels
+  async function encodeWithLimitsFromSource(source, maxSideStart, qualityStart){
+    let maxSide = maxSideStart;
+    let quality = qualityStart;
+
+    for(let attempt=0; attempt<10; attempt++){
+      const { dataUrl, width, height, bytes } = await drawAndEncode(source, maxSide, quality);
+
+      const px = width * height;
+      const ok = (bytes <= SAFE_MAX_BYTES) && (px <= SAFE_MAX_PIXELS);
+
+      if(ok) return { dataUrl, width, height, bytes };
+
+      // bajar calidad primero, luego tamaño
+      if(quality > 0.62){
+        quality = Math.max(0.62, quality - 0.08);
+      } else {
+        maxSide = Math.max(640, Math.round(maxSide * 0.85));
+        quality = qualityStart;
+      }
+    }
+    throw new Error("Photo still too large. Try moving closer or reduce scene detail.");
+  }
+
+  async function drawAndEncode(source, maxSide, quality){
+    const sw = source.videoWidth || source.naturalWidth;
+    const sh = source.videoHeight || source.naturalHeight;
+    if(!sw || !sh) throw new Error("Camera not ready yet.");
+
+    let scale = Math.min(1, maxSide / Math.max(sw, sh));
+    let tw = Math.max(1, Math.round(sw * scale));
+    let th = Math.max(1, Math.round(sh * scale));
+
+    // asegurar pixeles bajo SAFE_MAX_PIXELS
+    const px = tw * th;
+    if(px > SAFE_MAX_PIXELS){
+      const s2 = Math.sqrt(SAFE_MAX_PIXELS / px);
+      tw = Math.max(1, Math.round(tw * s2));
+      th = Math.max(1, Math.round(th * s2));
+    }
+
+    const canvas = document.createElement("canvas");
+    canvas.width = tw;
+    canvas.height = th;
+    const ctx = canvas.getContext("2d", { alpha:false });
+
+    ctx.drawImage(source, 0, 0, tw, th);
+
+    const dataUrl = canvas.toDataURL("image/jpeg", quality);
+
+    // estimar bytes reales del jpeg (decoded)
+    const comma = dataUrl.indexOf(",");
+    const b64len = comma > -1 ? (dataUrl.length - comma - 1) : dataUrl.length;
+    const bytes = Math.floor(b64len * 3 / 4);
+
+    return { dataUrl, width: tw, height: th, bytes };
+  }
+
+  async function takePhoto(btn){
+    if(!currentSlot) return;
+
+    return withButtonLock(btn, async () => {
+      try{
+        const flash = document.getElementById("flashFX");
+        flash.classList.add("active");
+        setTimeout(()=>flash.classList.remove("active"), 120);
+
+        const video = document.getElementById("video");
+
+        setLoading(true);
+
+        // Full image (safe)
+        const full = await encodeWithLimitsFromSource(video, SAFE_MAX_SIDE, 0.82);
+
+        // Thumb (stored in sheet note as base64)
+        const thumb = await encodeWithLimitsFromSource(video, 320, 0.75);
+
+        const res = await callServer("uploadPackagePhoto", {
+          fileId: FILE_ID,
+          rowNumber: ROW_NUMBER,
+          slot: currentSlot,
+          filename: `photo_${currentSlot}.jpg`,
+          dataUrl: full.dataUrl,
+          thumbDataUrl: thumb.dataUrl
+        });
+
+        if(!res.success) throw new Error(res.error);
+
+        photos = res.photos || [];
+        renderGrid();
+        setToast(`✅ Photo ${currentSlot} saved`);
+
+        // ✅ PATCH: refrescar Index al guardar
+        notifyParent("PHOTOS_SAVED");
+
+        closeCamera();
+      }catch(e){
+        alert(e.message || e);
+      }finally{
+        setLoading(false);
+      }
+    });
+  }
+
+  // --------- Upload from gallery ----------
+  function startUpload(slot, btn){
+    currentSlot = Number(slot);
+    const inp = document.getElementById("fileInput");
+    inp.value = "";
+    const unlock = lockButton(btn);
+    inp.onchange = async () => {
+      if(!inp.files || !inp.files[0]) {
+        unlock();
+        return;
+      }
+      try{
+        await handleUploadFile(inp.files[0]);
+      }finally{
+        unlock();
+      }
+    };
+    inp.click();
+  }
+
+  async function handleUploadFile(file){
+    try{
+      setLoading(true);
+
+      // load file as Image
+      const img = await fileToImage(file);
+
+      const full = await encodeWithLimitsFromSource(img, SAFE_MAX_SIDE, 0.82);
+      const thumb = await encodeWithLimitsFromSource(img, 320, 0.75);
+
+      const res = await callServer("uploadPackagePhoto", {
+        fileId: FILE_ID,
+        rowNumber: ROW_NUMBER,
+        slot: currentSlot,
+        filename: (file.name || `photo_${currentSlot}.jpg`).replace(/\s+/g, "_"),
+        dataUrl: full.dataUrl,
+        thumbDataUrl: thumb.dataUrl
+      });
+
+      if(!res.success) throw new Error(res.error);
+
+      photos = res.photos || [];
+      renderGrid();
+      setToast(`✅ Photo ${currentSlot} uploaded`);
+
+      // ✅ PATCH: refrescar Index al subir
+      notifyParent("PHOTOS_SAVED");
+    }catch(e){
+      alert(e.message || e);
+    }finally{
+      setLoading(false);
+    }
+  }
+
+  function fileToImage(file){
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error("Could not read file"));
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error("Invalid image file"));
+        img.src = String(reader.result || "");
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // --------- Remove ----------
+  async function removePhoto(slot, btn){
+    if(!confirm(`Remove Photo ${slot}?`)) return;
+    return withButtonLock(btn, async () => {
+      try{
+        setLoading(true);
+        const res = await callServer("clearPackagePhoto", {
+          fileId: FILE_ID,
+          rowNumber: ROW_NUMBER,
+          slot: Number(slot)
+        });
+        if(!res.success) throw new Error(res.error);
+
+        photos = res.photos || [];
+        renderGrid();
+        setToast(`🗑 Photo ${slot} removed`);
+
+        // ✅ PATCH: refrescar Index al eliminar
+        notifyParent("PHOTOS_SAVED");
+      }catch(e){
+        alert(e.message || e);
+      }finally{
+        setLoading(false);
+      }
+    });
+  }
+
+  // --------- Done ----------
+  function doneAndClose(btn){
+    return withButtonLock(btn, () => {
+      try{
+        // ✅ PATCH: "DONE" (Index refresca y además cierra el popup desde allá)
+        notifyParent("PHOTOS_DONE");
+      setToast("✅ Done");
+      }catch(e){}
+      closeSelfHard();
+    });
+  }
+
+  function lockButton(btn){
+    if(!btn) return () => {};
+    if(btn.dataset.busy === "1") return () => {};
+    btn.dataset.busy = "1";
+    btn.classList.add("loading");
+    return () => {
+      btn.dataset.busy = "0";
+      btn.classList.remove("loading");
+    };
+  }
+
+  function withButtonLock(btn, fn){
+    if(!btn) return Promise.resolve(fn());
+    if(btn.dataset.busy === "1") return Promise.resolve();
+    btn.dataset.busy = "1";
+    btn.classList.add("loading");
+    return Promise.resolve()
+      .then(fn)
+      .finally(() => {
+        btn.dataset.busy = "0";
+        btn.classList.remove("loading");
+      });
+  }
+
+  function escapeHtml(s){
+    s = (s || "").toString();
+    return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+  }
+
+  // init
+  init().catch(e => {
+    alert(e.message || e);
+  });
+</script>
+</body>
+</html>
