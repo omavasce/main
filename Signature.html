@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>✍️ Sign Package</title>
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --bg-card: #1e293b;
+      --border: #334155;
+      --text-light: #e2e8f0;
+      --text-muted: #cbd5e1;
+      --accent-blue: #60a5fa;
+      --accent-green: #10b981;
+      --accent-red: #ef4444;
+      --accent-purple: #a855f7;
+      --radius: 14px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, system-ui, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-light);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      margin: 0;
+    }
+
+    .card {
+      width: min(720px, 100%);
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .title {
+      font-size: 22px;
+      font-weight: 900;
+      color: var(--accent-blue);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .meta {
+      margin-top: 16px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      font-size: 15px;
+    }
+
+    .meta b {
+      color: var(--text-light);
+    }
+
+    canvas {
+      width: 100%;
+      height: 200px;
+      background: #fff;
+      border-radius: 12px;
+      touch-action: none;
+      margin-top: 16px;
+      border: 2px solid var(--border);
+    }
+
+    .input {
+      width: 100%;
+      padding: 14px 16px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(15, 23, 42, 0.6);
+      color: var(--text-light);
+      margin-top: 16px;
+      font-size: 16px;
+      outline: none;
+      transition: border-color 0.2s ease;
+    }
+
+    .input:focus {
+      border-color: var(--accent-blue);
+      box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1);
+    }
+
+    .btns {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 20px;
+    }
+
+    button {
+      padding: 12px 20px;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      font-weight: 900;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+      flex: 1;
+      min-width: 140px;
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    .btn-clear {
+      background: #475569;
+      color: white;
+    }
+
+    .btn-save {
+      background: var(--accent-green);
+      color: white;
+    }
+
+    .err {
+      color: var(--accent-red);
+      white-space: pre-wrap;
+      margin-top: 12px;
+      font-size: 13px;
+      padding: 10px;
+      border-radius: 8px;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+
+    .success-message {
+      color: var(--accent-green);
+      text-align: center;
+      padding: 30px;
+      font-size: 18px;
+      font-weight: 900;
+    }
+
+    /* Photos section */
+    .photos {
+      margin-top: 24px;
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: rgba(11, 18, 36, 0.6);
+    }
+
+    .phTitle {
+      font-weight: 900;
+      color: var(--accent-purple);
+      margin-bottom: 12px;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .thumbs {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .photo-thumb {
+      width: 100px;
+      height: 100px;
+      object-fit: cover;
+      border-radius: 10px;
+      border: 2px solid var(--border);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: #000;
+    }
+
+    .photo-thumb:hover {
+      transform: scale(1.05);
+      border-color: var(--accent-blue);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    .no-photos {
+      color: var(--text-muted);
+      text-align: center;
+      padding: 20px;
+      font-style: italic;
+    }
+
+    /* Lightbox */
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 9999;
+      backdrop-filter: blur(10px);
+    }
+
+    .lightbox.active {
+      display: flex;
+    }
+
+    .lightbox-content {
+      position: relative;
+      max-width: min(90vw, 900px);
+      max-height: 85vh;
+    }
+
+    .lightbox-img {
+      max-width: 100%;
+      max-height: 85vh;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: #111827;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    }
+
+    .lightbox-close {
+      position: absolute;
+      top: -15px;
+      right: -15px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(30, 41, 59, 0.9);
+      border: 1px solid var(--border);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      cursor: pointer;
+      z-index: 10000;
+      transition: all 0.2s ease;
+    }
+
+    .lightbox-close:hover {
+      background: rgba(239, 68, 68, 0.9);
+      transform: scale(1.1);
+    }
+
+    /* Responsive */
+    @media (max-width: 480px) {
+      .card {
+        padding: 16px;
+      }
+
+      .title {
+        font-size: 19px;
+      }
+
+      button {
+        min-width: 120px;
+        padding: 10px 16px;
+      }
+
+      .photo-thumb {
+        width: 80px;
+        height: 80px;
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="title">
+    <span style="font-size: 24px;">✍️</span>
+    Confirm Receipt
+  </div>
+
+  <div class="meta" id="info">Loading package information…</div>
+
+  <!-- Photos Section -->
+  <div class="photos" id="photosSection" style="display:none;">
+    <div class="phTitle">
+      <span style="font-size: 18px;">📷</span>
+      Package Photos
+    </div>
+    <div class="thumbs" id="thumbs"></div>
+  </div>
+
+  <!-- Lightbox -->
+  <div class="lightbox" id="lightbox" onclick="closeLightbox()">
+    <div class="lightbox-content" onclick="event.stopPropagation()">
+      <div class="lightbox-close" onclick="closeLightbox()">×</div>
+      <img class="lightbox-img" id="lightboxImg" alt="Photo">
+    </div>
+  </div>
+
+  <div class="err" id="err"></div>
+
+  <input class="input" id="receiverName" placeholder="Your full name (receiver)">
+
+  <canvas id="sig"></canvas>
+
+  <div class="btns">
+    <button class="btn-clear" onclick="clearSig()">
+      <span style="font-size: 18px;">🧽</span>
+      Clear Signature
+    </button>
+    <button class="btn-save" onclick="saveSig()">
+      <span style="font-size: 18px;">✅</span>
+      Save Signature
+    </button>
+  </div>
+</div>
+
+<script>
+  const TOKEN = "<?= token ?>";
+  const canvas = document.getElementById("sig");
+  const ctx = canvas.getContext("2d");
+  let drawing = false, lastX = 0, lastY = 0;
+
+  // Function to set error message
+  function setErr(e) {
+    document.getElementById("err").textContent = e ? String(e) : "";
+  }
+
+  // Function to clear errors
+  function clearErr() {
+    setErr("");
+  }
+
+  // Fit canvas to container and set up drawing context
+  function fitCanvas() {
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = Math.max(320, rect.width) * dpr;
+    canvas.height = Math.max(160, rect.height) * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.lineWidth = 3;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.strokeStyle = "#111";
+  }
+
+  // Get mouse/touch position relative to canvas
+  function getPosition(evt) {
+    const rect = canvas.getBoundingClientRect();
+    const x = (evt.touches ? evt.touches[0].clientX : evt.clientX) - rect.left;
+    const y = (evt.touches ? evt.touches[0].clientY : evt.clientY) - rect.top;
+    return { x, y };
+  }
+
+  // Drawing functions
+  function startDrawing(evt) {
+    evt.preventDefault();
+    drawing = true;
+    const pos = getPosition(evt);
+    lastX = pos.x;
+    lastY = pos.y;
+  }
+
+  function draw(evt) {
+    if (!drawing) return;
+    evt.preventDefault();
+    const pos = getPosition(evt);
+
+    ctx.beginPath();
+    ctx.moveTo(lastX, lastY);
+    ctx.lineTo(pos.x, pos.y);
+    ctx.stroke();
+
+    lastX = pos.x;
+    lastY = pos.y;
+  }
+
+  function stopDrawing(evt) {
+    evt.preventDefault();
+    drawing = false;
+  }
+
+  // Set up canvas event listeners
+  canvas.addEventListener("mousedown", startDrawing);
+  canvas.addEventListener("mousemove", draw);
+  window.addEventListener("mouseup", stopDrawing);
+
+  canvas.addEventListener("touchstart", startDrawing, { passive: false });
+  canvas.addEventListener("touchmove", draw, { passive: false });
+  canvas.addEventListener("touchend", stopDrawing, { passive: false });
+
+  // Clear canvas
+  function clearSig() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+
+  // Call Google Apps Script server
+  function callServer(name, data) {
+    return new Promise((resolve, reject) => {
+      google.script.run
+        .withSuccessHandler(resolve)
+        .withFailureHandler(reject)
+        [name](data);
+    });
+  }
+
+  // Load package information and photos
+  async function loadInfo() {
+    try {
+      clearErr();
+      const res = await callServer("getPackageForSignature", { token: TOKEN });
+      if (!res.success) throw new Error(res.error);
+
+      // Update package info
+      document.getElementById("info").innerHTML = `
+        <b>Description:</b> ${escapeHtml(res.package.description || '')}<br>
+        <b>Sender:</b> ${escapeHtml(res.package.sender || '')}<br>
+        <b>Quantity:</b> ${escapeHtml(res.package.qty || '1')}<br>
+        <b>Location:</b> ${escapeHtml(res.package.location || '')}<br>
+        <b>Route:</b> ${escapeHtml(res.header.date || '')} • ${escapeHtml(res.header.routeTime || '')} • ${escapeHtml(res.header.driver || '')}
+      `;
+
+      // Render photos
+      const photos = (res.package && res.package.photos) ? res.package.photos : [];
+      const section = document.getElementById("photosSection");
+      const thumbsContainer = document.getElementById("thumbs");
+
+      if (photos.length > 0) {
+        section.style.display = "block";
+
+        // Clear existing thumbs
+        thumbsContainer.innerHTML = '';
+
+        // Create thumbnails
+        photos.forEach(photo => {
+          // Use Base64 for thumbnails, open full image if URL exists
+          const thumbSrc = photo.base64 || photo.url || '';
+          const fullSrc = photo.url || photo.base64 || '';
+          const fileId = photo.id || '';
+          if (thumbSrc) {
+            const img = document.createElement('img');
+            img.className = 'photo-thumb';
+            img.src = thumbSrc;
+            img.alt = `Photo ${photo.slot}`;
+            img.title = `Click to view photo ${photo.slot}`;
+            img.onclick = () => openPhotoLightbox(fileId, fullSrc);
+            img.onerror = function() {
+              // Fallback if image fails to load
+              this.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIHJ4PSIxMCIgZmlsbD0iIzJDMkMyRSIvPjwvc3ZnPg==';
+            };
+
+            thumbsContainer.appendChild(img);
+          }
+        });
+      } else {
+        section.style.display = "none";
+        thumbsContainer.innerHTML = '<div class="no-photos">No photos for this package</div>';
+      }
+
+    } catch (e) {
+      setErr(`Error loading package: ${e.message || e}`);
+      document.getElementById("info").textContent = "Error loading package information.";
+    }
+  }
+
+  // Save signature
+  async function saveSig() {
+    try {
+      clearErr();
+      const receiverName = document.getElementById("receiverName").value.trim();
+      if (!receiverName) {
+        alert("Please enter your name to confirm receipt.");
+        document.getElementById("receiverName").focus();
+        return;
+      }
+
+      // Check if signature is not empty
+      const dataUrl = canvas.toDataURL("image/png");
+      const signatureDataSize = dataUrl.length;
+      if (signatureDataSize < 1200) {
+        alert("Please sign above before saving.");
+        return;
+      }
+
+      // Save signature
+      const res = await callServer("saveSignatureFromToken", {
+        token: TOKEN,
+        signatureData: dataUrl,
+        receiverName
+      });
+
+      if (!res.success) throw new Error(res.error);
+
+      // Show success message
+      document.body.innerHTML = `
+        <div class="card">
+          <div class="success-message">
+            <div style="font-size: 48px; margin-bottom: 20px;">✅</div>
+            <div style="font-size: 20px; margin-bottom: 10px;">Signature Saved Successfully!</div>
+            <div style="color: var(--text-muted); font-size: 14px; margin-top: 20px;">
+              You can close this window now.
+            </div>
+          </div>
+        </div>
+      `;
+
+    } catch (e) {
+      setErr(`Error saving signature: ${e.message || e}`);
+      alert(`Error: ${e.message || e}`);
+    }
+  }
+
+  // Lightbox functions
+  function openLightbox(imageSrc) {
+    const lightbox = document.getElementById("lightbox");
+    const lightboxImg = document.getElementById("lightboxImg");
+
+    lightboxImg.src = imageSrc;
+    lightbox.classList.add("active");
+
+    // Prevent body scroll when lightbox is open
+    document.body.style.overflow = 'hidden';
+  }
+
+  async function openPhotoLightbox(fileId, fallbackSrc){
+    if(!fileId){
+      if(fallbackSrc) openLightbox(fallbackSrc);
+      return;
+    }
+
+    try{
+      const res = await callServer("getPhotoFullBase64", { fileId });
+      if(res && res.success && res.base64){
+        openLightbox(res.base64);
+        return;
+      }
+    }catch(e){
+      // ignore and fall back
+    }
+
+    if(fallbackSrc) openLightbox(fallbackSrc);
+  }
+
+  function closeLightbox() {
+    const lightbox = document.getElementById("lightbox");
+    const lightboxImg = document.getElementById("lightboxImg");
+
+    lightbox.classList.remove("active");
+    lightboxImg.src = "";
+
+    // Restore body scroll
+    document.body.style.overflow = '';
+  }
+
+  // Close lightbox with Escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeLightbox();
+  });
+
+  // Helper function to escape HTML
+  function escapeHtml(s) {
+    if (!s) return '';
+    s = String(s);
+    const div = document.createElement('div');
+    div.textContent = s;
+    return div.innerHTML;
+  }
+
+  // Initialize
+  fitCanvas();
+  clearSig();
+  loadInfo();
+
+  // Handle window resize
+  window.addEventListener("resize", () => {
+    fitCanvas();
+    clearSig();
+  });
+
+  // Auto-focus receiver name field
+  setTimeout(() => {
+    document.getElementById("receiverName").focus();
+  }, 500);
+</script>
+</body>
+</html>
